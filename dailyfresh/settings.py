@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 
-from django.conf.global_settings import STATICFILES_DIRS
+from django.conf.global_settings import STATICFILES_DIRS, DEFAULT_FILE_STORAGE
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -145,3 +145,9 @@ SESSION_CACHE_ALIAS = "default"
 
 # 设置若用户未登录 跳转的页面
 LOGIN_URL = 'users:login'
+
+# 上传图片保存的位置
+MEDIA_ROOT = os.path.join(BASE_DIR, 'static/media')
+
+# 配置Django自定义的存储系统
+DEFAULT_FILE_STORAGE = 'utils.fdfs.storage.FdfsStorage'

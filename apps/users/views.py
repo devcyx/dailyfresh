@@ -6,9 +6,11 @@ from django.db.utils import IntegrityError
 from django.http.response import HttpResponse
 from django.shortcuts import render, redirect
 from django.views.generic.base import View
+from django_redis import get_redis_connection
 from itsdangerous import TimedJSONWebSignatureSerializer, SignatureExpired
 
-from apps.users.models import User
+from apps.goods.models import GoodsSKU
+from apps.users.models import User, Address
 from celery_tasks.tasks import send_active_mail
 from dailyfresh import settings
 from utils.common import LoginAuthenticateMixin
@@ -103,12 +105,20 @@ class LoginView(View):
             request.session.set_expiry(0)
         else:
             # 勾选保存十天免登陆
-            request.session.set_expiry(3600*24*10)
+            request.session.set_expiry(3600 * 24 * 10)
 
         # 通过django的login方法，保存登录用户状态（使用session）
         login(request, user)
         print(request.session)
         # 返回首页
+        return redirect(reverse('goods:index'))
+
+
+class LogoutView(View):
+    """注销用户操作"""
+
+    def get(self, request):
+        logout(request)
         return redirect(reverse('goods:index'))
 
 
@@ -135,10 +145,21 @@ class UserInfoView(LoginAuthenticateMixin, View):
     """用户信息视图"""
 
     def get(self, request):
+        try:
+            address = request.user.address_set.latest('create_date')
+        except:
+            address = '无'
+
+        strict_redis = get_redis_connection('default')
+        skuid = strict_redis.lrange('history_%d' % request.user.id, 0, 4)
+        skuid_list = []
+        for id in skuid:
+            skuid_list.append(GoodsSKU.objects.get(id=id))
         context = {
-            'which_code': 1
+            'which_code': 1,
+            'address': address,
+            'skuid_list': skuid_list,
         }
-        print(UserInfoView.__mro__)
         return render(request, 'users/user_center_info.html', context)
 
 
@@ -152,20 +173,34 @@ class UserOrderView(LoginAuthenticateMixin, View):
         return render(request, 'users/user_center_order.html', context)
 
 
-class UserAddressView(View, LoginAuthenticateMixin):
+class UserAddressView(LoginAuthenticateMixin, View):
     """用户地址视图"""
 
     def get(self, request):
-        print(UserAddressView.__mro__)
+        try:
+            address = request.user.address_set.latest('create_date')
+        except Exception as e:
+            print(e)
+            address = None
         context = {
-            'which_code': 3
+            'which_code': 3,
+            'address': address
         }
         return render(request, 'users/user_center_site.html', context)
 
+    def post(self, request):
+        """保存地址"""
+        # 获取参数
+        receiver_name = request.POST.get('receiver')
+        receiver_mobile = request.POST.get('mobile')
+        detail_addr = request.POST.get('site_area')
+        zip_default = request.POST.get('zip_code')
 
-class LogoutView(View):
-    """注销用户操作"""
+        # 检验是否为空
+        if not all([receiver_mobile, receiver_name, detail_addr]):
+            return render(request, 'users/user_center_site.html',
+                          {'message': '栏位不能为空'})
 
-    def get(self, request):
-        logout(request)
-        return redirect(reverse('goods:index'))
+        Address.objects.create(receiver_name=receiver_name, receiver_mobile=receiver_mobile,
+                               detail_addr=detail_addr, zip_default=zip_default, user=request.user)
+        return redirect(reverse('users:address'))
