@@ -32,7 +32,13 @@
         <div class="slide fl">
             <ul class="slide_pics">
                 {% for slide in slides %}
-                    <li><img src="{{ slide.image.url }}" alt="幻灯片"></li>
+
+                    <li>
+                        <a href="{% url 'goods:detail' slide.sku.id %}">
+                            <img src="{{ slide.image.url }}" alt="幻灯片">
+                        </a>
+                    </li>
+
                 {% endfor %}
             </ul>
             <div class="prev"></div>
@@ -53,10 +59,10 @@
                 <div class="subtitle fl">
                     <span>|</span>
                     {% for sku in category.text %}
-                        <a href="#">{{ sku.sku.name }}</a>
+                        <a href="{% url 'goods:detail' sku.sku.id %}">{{ sku.sku.name }}</a>
                     {% endfor %}
                 </div>
-                <a href="#" class="goods_more fr" id="fruit_more">查看更多 ></a>
+                <a href="{% url 'goods:list' category.id 1 %}" class="goods_more fr" id="fruit_more">查看更多 ></a>
             </div>
 
             <div class="goods_con clearfix">
@@ -64,8 +70,8 @@
                 <ul class="goods_list fl">
                     {% for sku in category.pht %}
                         <li>
-                            <h4><a href="#">{{ sku.sku.name }}</a></h4>
-                            <a href="#"><img src="{{ sku.sku.default_image.url }}"></a>
+                            <h4><a href="{% url 'goods:detail' sku.sku.id %}">{{ sku.sku.name }}</a></h4>
+                            <a href="{% url 'goods:detail' sku.sku.id %}"><img src="{{ sku.sku.default_image.url }}"></a>
                             <div class="prize">¥ {{ sku.sku.price }}</div>
                         </li>
                     {% endfor %}

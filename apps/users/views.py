@@ -109,7 +109,6 @@ class LoginView(View):
 
         # 通过django的login方法，保存登录用户状态（使用session）
         login(request, user)
-        print(request.session)
         # 返回首页
         return redirect(reverse('goods:index'))
 
@@ -151,7 +150,8 @@ class UserInfoView(LoginAuthenticateMixin, View):
             address = '无'
 
         strict_redis = get_redis_connection('default')
-        skuid = strict_redis.lrange('history_%d' % request.user.id, 0, 4)
+        key = 'history_%s' % request.user.id
+        skuid = strict_redis.lrange(key, 0, 4)
         skuid_list = []
         for id in skuid:
             skuid_list.append(GoodsSKU.objects.get(id=id))
